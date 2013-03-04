@@ -11,6 +11,7 @@
 #include "pool.h"
 
 #include "revwalk.h"
+#include "git2/revparse.h"
 #include "merge.h"
 
 #include <regex.h>
@@ -227,6 +228,60 @@ int git_revwalk_push_ref(git_revwalk *walk, const char *refname)
 	assert(walk && refname);
 	return push_ref(walk, refname, 0);
 }
+
+static int push_spec(git_revwalk *walk, const char *spec, int hide)
+{
+	int error;
+	git_object *obj;
+
+	if (error = git_revparse_single(&obj, walk->repo, spec))
+		return error;
+	return push_commit(walk, git_object_id(obj), hide);
+}
+
+int git_revwalk_parseopts(git_revwalk *walk, int nopts, const char * const *opts)
+{
+	int hide, i, error;
+	const char *p, *revspec;
+
+	assert(walk && opts);
+	hide = 0;
+	for (i = 0; i < nopts; i++) {
+		if (!strcmp(opts[i], "--topo-order")) {
+			walk->sorting = GIT_SORT_TOPOLOGICAL | (walk->sorting & GIT_SORT_REVERSE);
+			git_revwalk_sorting(walk, walk->sorting);
+		} else if (!strcmp(opts[i], "--date-order")) {
+			walk->sorting = GIT_SORT_TIME | (walk->sorting & GIT_SORT_REVERSE);
+			git_revwalk_sorting(walk, walk->sorting);
+		} else if (!strcmp(opts[i], "--reverse")) {
+			walk->sorting = (walk->sorting & ~GIT_SORT_REVERSE)
+			    | ((walk->sorting & GIT_SORT_REVERSE) ? 0 : GIT_SORT_REVERSE);
+			git_revwalk_sorting(walk, walk->sorting);
+		} else if (!strcmp(opts[i], "--not")) {
+			hide = !hide;
+		} else if (opts[i][0] == '^') {
+			if (error = push_spec(walk, opts[i] + 1, !hide))
+				return error;
+		} else if (p = strstr(opts[i], "..")) {
+			if (p[2] == '.') {
+				/* TODO: support "<commit>...<commit>" */
+				giterr_set(GITERR_INVALID, "Symmetric differences not implemented in revision-list syntax");
+				return GIT_EINVALIDSPEC;
+			}
+			revspec = git__substrdup(opts[i], p - opts[i]);
+			if (error = push_spec(walk, revspec, !hide))
+				return error;
+			if (error = push_spec(walk, p + 2, hide))
+				return error;
+		} else {
+			if (error = push_spec(walk, opts[i], hide))
+				return error;
+		}
+	}
+
+	return 0;
+}
+
 
 int git_revwalk_hide_ref(git_revwalk *walk, const char *refname)
 {

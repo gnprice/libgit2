@@ -217,6 +217,23 @@ GIT_EXTERN(int) git_revwalk_next(git_oid *out, git_revwalk *walk);
 GIT_EXTERN(void) git_revwalk_sorting(git_revwalk *walk, unsigned int sort_mode);
 
 /**
+ * Parse the given `git rev-list`-style options.
+ *
+ * Supported options include
+ *   <commit>, ^<commit>
+ *   <commit>..<commit>
+ *   --not (applying only to the rest of this call, not future calls)
+ *   --topo-order, --date-order, --reverse
+ *
+ * @param walk the walker being used for the traversal
+ * @param nopts the number of options
+ * @param opts the options
+ * @return 0 or an error code
+ *
+ */
+GIT_EXTERN(int) git_revwalk_parseopts(git_revwalk *walk, int nopts, const char * const *opts);
+
+/**
  * Free a revision walker previously allocated.
  *
  * @param walk traversal handle to close. If NULL nothing occurs.

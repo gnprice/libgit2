@@ -11,7 +11,7 @@
 	* 5b5b025 another commit
 	* 8496071 testing
 */
-static const char *commit_head = "a4a7dce85cf63874e984719f4fdd239f5145052f";
+static const char commit_head[] = "a4a7dce85cf63874e984719f4fdd239f5145052f";
 
 static const char *commit_ids[] = {
 	"a4a7dce85cf63874e984719f4fdd239f5145052f", /* 0 */
@@ -37,6 +37,10 @@ static const int commit_sorting_topo_reverse[][6] = {
 
 static const int commit_sorting_time_reverse[][6] = {
 	{4, 5, 2, 1, 3, 0}
+};
+
+static const int commit_sorting_segment[][6] = {
+	{1, 2, -1, -1, -1, -1}
 };
 
 #define commit_count 6
@@ -192,4 +196,43 @@ void test_revwalk_basic__disallow_non_commit(void)
 
 	cl_git_pass(git_oid_fromstr(&oid, "521d87c1ec3aef9824daf6d96cc0ae3710766d91"));
 	cl_git_fail(git_revwalk_push(_walk, &oid));
+}
+
+
+static void test_parseopts(int nargs, const char **args,
+                           int n_expected_orders, const int (*expected_orders)[6])
+{
+	git_revwalk_reset(_walk);
+	git_revwalk_sorting(_walk, 0);
+	cl_git_pass(git_revwalk_parseopts(_walk, nargs, args));
+	cl_git_pass(test_walk_only(_walk, expected_orders, n_expected_orders));
+}
+
+void test_revwalk_basic__parseopts(void)
+{
+	const char *args[5];
+
+	args[0] = "--date-order"; args[1] = commit_head;
+	test_parseopts(2, args, 1, commit_sorting_time);
+
+	args[0] = "--topo-order"; args[1] = commit_head;
+	test_parseopts(2, args, 2, commit_sorting_topo);
+
+	args[0] = "--date-order"; args[1] = "--reverse"; args[2] = commit_head;
+	test_parseopts(3, args, 1, commit_sorting_time_reverse);
+
+	args[0] = "--topo-order"; args[1] = "--reverse"; args[2] = commit_head;
+	test_parseopts(3, args, 2, commit_sorting_topo_reverse);
+
+	args[0] = "--date-order"; args[1] = "--topo-order";
+	args[2] = "--reverse"; args[3] = "--reverse"; args[4] = commit_head;
+	test_parseopts(5, args, 2, commit_sorting_topo);
+
+	args[0] = "^9fd738e~2"; args[1] = "9fd738e";
+	test_parseopts(2, args, 1, commit_sorting_segment);
+
+	args[0] = "--not"; args[1] = "9fd738e..9fd738e~2";
+	test_parseopts(2, args, 1, commit_sorting_segment);
+
+	git_revwalk_reset(_walk);
 }
