@@ -211,6 +211,7 @@ static void test_parseopts(int nargs, const char **args,
 void test_revwalk_basic__parseopts(void)
 {
 	const char *args[5];
+	git_reference *ref;
 
 	args[0] = "--date-order"; args[1] = commit_head;
 	test_parseopts(2, args, 1, commit_sorting_time);
@@ -233,6 +234,12 @@ void test_revwalk_basic__parseopts(void)
 
 	args[0] = "--not"; args[1] = "9fd738e..9fd738e~2";
 	test_parseopts(2, args, 1, commit_sorting_segment);
+
+/* WORK HERE: make this work (also the test may stand some cleaning up) */
+	git_reference_lookup(&ref, _repo, "HEAD");
+	git_reference_symbolic_set_target(ref, commit_ids[1]);
+	args[0] = "9fd738e~2..";
+	test_parseopts(1, args, 1, commit_sorting_segment);
 
 	git_revwalk_reset(_walk);
 }

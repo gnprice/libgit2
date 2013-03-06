@@ -221,7 +221,7 @@ GIT_EXTERN(void) git_revwalk_sorting(git_revwalk *walk, unsigned int sort_mode);
  *
  * Supported options include
  *   <commit>, ^<commit>
- *   <commit>..<commit>
+ *   <commit>..<commit> (with either endpoint omitted)
  *   --not (applying only to the rest of this call, not future calls)
  *   --topo-order, --date-order, --reverse
  *
