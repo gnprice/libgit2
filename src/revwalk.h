@@ -39,6 +39,8 @@ struct git_revwalk {
 	git_vector twos;
 };
 
+size_t git_revwalk__dump(git_revwalk *walk, char *buf, size_t n);
+
 git_commit_list_node *git_revwalk__commit_lookup(git_revwalk *walk, const git_oid *oid);
 
 #endif

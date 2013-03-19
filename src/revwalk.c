@@ -16,6 +16,34 @@
 
 #include <regex.h>
 
+size_t git_revwalk__dump(git_revwalk *walk, char *buf, size_t n)
+{
+	const size_t hash_abbrev = 9;
+	char *const end = buf + n;
+	char *p = buf;
+	size_t i;
+
+	p += snprintf(p, end-p, "<git_revwalk one=<oid=");
+	if (p + hash_abbrev >= end)
+		return p - buf;
+	git_oid_tostr(p, hash_abbrev+1, &walk->one->oid);
+	p += hash_abbrev;
+	p += snprintf(p, end-p, "> twos=[");
+	for (i = 0; i < walk->twos.length; i++) {
+		git_commit_list_node *cln = walk->twos.contents[i];
+		if (i > 0)
+			p += snprintf(p, end-p, ", ");
+		p += snprintf(p, end-p, "<oid=");
+		if (p + hash_abbrev >= end)
+			return p - buf;
+		git_oid_tostr(p, hash_abbrev+1, &cln->oid);
+		p += hash_abbrev;
+		p += snprintf(p, end-p, ">");
+	}
+	p += snprintf(p, end-p, "] sorting=%d>", walk->sorting);
+	return p - buf;
+}
+
 git_commit_list_node *git_revwalk__commit_lookup(
 	git_revwalk *walk, const git_oid *oid)
 {
